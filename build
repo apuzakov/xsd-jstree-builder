@@ -7,7 +7,7 @@ require_once BASE_DIR . '/vendor/autoload.php';
 $reader = new \GoetasWebservices\XML\XSDReader\SchemaReader();
 
 //$schema = $reader->readFile(BASE_DIR."/MP_v06/MP_v06.xsd");
-$schema = $reader->readFile(BASE_DIR."/InspectionAct_v01/InspectionAct/InspectionAct_v01.xsd" /* путь до схемы */ );
+$schema = $reader->readFile(/* путь до xsd схемы --> */BASE_DIR."/InspectionAct_v01/InspectionAct/InspectionAct_v01.xsd");
 
 $loader = new \Twig_Loader_Array(array(
     'index' => file_get_contents(BASE_DIR."/texplan.html.twig"),
@@ -37,7 +37,7 @@ $twigParams = [
 $html = $twig->render('index', $twigParams);
 
 //file_put_contents(BASE_DIR.'/mp.html', $html);
-file_put_contents(BASE_DIR.'/InspectionAct.html' /* путь для итоговой html */, $html);
+file_put_contents( /* путь для итоговой html --> */BASE_DIR.'/InspectionAct.html', $html);
 
 
 function buildElement($element, $isAttr = false)
