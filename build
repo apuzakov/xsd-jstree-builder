@@ -1,0 +1,154 @@
+#!/usr/bin/env php
+<?php
+
+define('BASE_DIR', __DIR__);
+require_once BASE_DIR . '/vendor/autoload.php';
+
+$reader = new \GoetasWebservices\XML\XSDReader\SchemaReader();
+
+//$schema = $reader->readFile(BASE_DIR."/MP_v06/MP_v06.xsd");
+$schema = $reader->readFile(BASE_DIR."/InspectionAct_v01/InspectionAct/InspectionAct_v01.xsd" /* путь до схемы */ );
+
+$loader = new \Twig_Loader_Array(array(
+    'index' => file_get_contents(BASE_DIR."/texplan.html.twig"),
+    'tree_item.html.twig' => file_get_contents(BASE_DIR."/tree_item.html.twig"),
+));
+$twig = new \Twig_Environment($loader);
+
+$list = [];
+foreach ($schema->getElements() as $element)
+{
+    $list[] = [
+        'name' => $element->getName() . ' / ' . $element->getDoc(),
+        'items' => buildType($element->getType())
+    ];
+//    $additional = buildAdditional($element->getType());
+//    if(!empty($additional))
+//        $list[0]['additional'] = $additional;
+
+    break;
+}
+
+
+
+$twigParams = [
+    'list' => $list
+];
+$html = $twig->render('index', $twigParams);
+
+//file_put_contents(BASE_DIR.'/mp.html', $html);
+file_put_contents(BASE_DIR.'/InspectionAct.html' /* путь для итоговой html */, $html);
+
+
+function buildElement($element, $isAttr = false)
+{
+    $prefix = "";
+    if (!$isAttr) {
+        $minOcurs = $element->getMin();
+//        if($element->getMin() === $element->getMax() && $element->getMin() === 1)
+        if($minOcurs > 0)
+            $prefix .= "О";
+        if($element->getMax() === -1)
+            $prefix .= "М";
+    } else {
+        $prefix = "А";
+        if($element->getUse() === 'required')
+            $prefix .= "О";
+    }
+
+    $prefix = strlen($prefix) > 0 ? $prefix." " : $prefix;
+    $items = [];
+    if ($element instanceof \GoetasWebservices\XML\XSDReader\Schema\Element\GroupRef){
+        foreach ($element->getElements() as $element)
+            $items[] = buildElement($element);
+    }
+
+    $result = [
+        "name" => $prefix . $element->getName() . ' / ' . $element->getDoc(),
+        "items" => empty($items) ? buildType($element->getType()) : $items,
+    ];
+
+    $additional = buildAdditional($element->getType());
+    if(!empty($additional))
+        $result['additional'] = $additional;
+
+    return $result;
+}
+
+function buildAdditional($type)
+{
+    $additional = [];
+    if(!empty($type->getName()))
+        $additional[] = "Тип: " . $type->getName();
+
+    if($type->getRestriction() instanceof \GoetasWebservices\XML\XSDReader\Schema\Inheritance\Restriction){
+        $restriction = $type->getRestriction();
+        $checks = $restriction->getChecks();
+
+        if(isset($checks["maxLength"][0]["value"]))
+            $additional[] = "Максимальное количество символов: " . $checks["maxLength"][0]["value"];
+
+        if(isset($checks["minLength"][0]["value"]))
+            $additional[] = "Минимальное количество символов: " . $checks["minLength"][0]["value"];
+
+        if(isset($checks["pattern"][0]["value"]))
+            $additional[] = "Шаблон проверки: " . $checks["pattern"][0]["value"];
+
+        if(isset($checks["enumeration"]) && is_array($checks["enumeration"])){
+            foreach ($checks["enumeration"] as $enumItem)
+                $additional[] = $enumItem['value'] . ' / ' . $enumItem['doc'];
+        }
+        // Базовый тип (2): строка
+        // Базовый тип (1): строка
+    }
+
+    return $additional;
+}
+
+function buildType($type)
+{
+    if($type instanceof \GoetasWebservices\XML\XSDReader\Schema\Type\ComplexType)
+        return buildComplex($type);
+
+    return buildSimple($type);
+}
+
+function buildComplex(\GoetasWebservices\XML\XSDReader\Schema\Type\ComplexType $type)
+{
+    $items = [];
+    if ($type->getExtension() instanceof \GoetasWebservices\XML\XSDReader\Schema\Inheritance\Extension)
+        $items = buildType($type->getExtension()->getBase());
+
+    foreach ($type->getElements() as $element)
+        $items[] = buildElement($element);
+
+    if (!empty($type->getAttributes()))
+        buildAttributes($type->getAttributes(), $items);
+
+    return $items;
+}
+
+function buildSimple(\GoetasWebservices\XML\XSDReader\Schema\Type\SimpleType $type)
+{
+    return ['name' => $type->getDoc()];
+}
+
+function buildAttributes(array $attributes, &$result)
+{
+    foreach ($attributes as $attribute) {
+        if ($attribute instanceof \GoetasWebservices\XML\XSDReader\Schema\Attribute\Group) {
+            buildAttributes($attribute->getAttributes(), $result);
+        }
+        if ($attribute instanceof \GoetasWebservices\XML\XSDReader\Schema\Attribute\Attribute) {
+            $result[] = buildAttribute($attribute);
+        }
+    }
+
+
+}
+
+function buildAttribute(\GoetasWebservices\XML\XSDReader\Schema\Attribute\Attribute $attribute)
+{
+    return buildElement($attribute, true);
+}
+// http://pbprog.ru/databases/schema/?ID=90

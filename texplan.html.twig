@@ -1,0 +1,29 @@
+
+<!DOCTYPE html>
+<!-- saved from url=(0049)https://lord.github.io/slate/?python#introduction -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+    <title>Межевой план</title>
+
+    <link href="file-explore.css" rel="stylesheet">
+    <script src="http://code.jquery.com/jquery.min.js"></script>
+    <script src="file-explore.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script>
+        $(document).ready(function() {
+            $(".file-tree").filetree();
+        });
+    </script>
+</head>
+<body>
+
+<ul class="file-tree">
+    {% include "tree_item.html.twig" with {'links':list} only %}
+</ul>
+
+
+</body>
+</html>

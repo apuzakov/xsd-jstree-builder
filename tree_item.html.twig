@@ -1,0 +1,18 @@
+<!--includes/menu-links.html-->
+{% for add in additional %}
+    {% if add is defined %}
+        <li>{{ add }}</li>
+    {% endif %}
+{% endfor %}
+{% for link in links %}
+    {% if link.name is defined %}
+        <li>
+            <a href="#">{{ link.name }}</a>
+            {% if link.items is defined %}
+                <ul>
+                    {% include "tree_item.html.twig" with {'links': link.items, 'additional': link.additional} %}
+                </ul>
+            {% endif %}
+        </li>
+    {% endif %}
+{% endfor %}
